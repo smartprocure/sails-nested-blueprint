@@ -19,6 +19,7 @@ You can also use the service directly if you need to perform a nested create as 
 On the service, it's called `createNested`.
 
 ```js
+let {service} = require('sails-nested-blueprint')
 let sails = require('sails')
 let SomeOperation = async (...args) => {
   let payload = getPayload(args)
@@ -30,7 +31,7 @@ let SomeOperation = async (...args) => {
 You can also use the helper utilities directly in a controller method to recreate what `blueprint` does:
 
 ```js
-let {blueprintFromReq, service} = require('sails-nested-blueprint')
+let {serviceFromReq, service} = require('sails-nested-blueprint')
 module.exports = {
   create: async (req, res) => res
     .status(await serviceFromReq(req).createNested(req.allParams()))
