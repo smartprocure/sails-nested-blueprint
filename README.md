@@ -1,5 +1,6 @@
 # sails-nested-blueprint
-Blueprints for nested waterline models for use in sails 1.0
+As of sails 1.0, blueprints no longer support nested creates (passing along associated models during creates).
+This library brings it back in a non-obstrusive way.
 
 ## Usage
 
