@@ -1,6 +1,6 @@
 {
   "name": "sails-nested-blueprint",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Blueprints for nested waterline models for use in sails 1.0",
   "main": "index.js",
   "scripts": {
