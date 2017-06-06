@@ -11,6 +11,7 @@ module.exports = {
   getModelName,
   serviceFromReq,
   blueprint: controller({
-    create: async req => serviceFromReq(req).createNested(req.allParams())
+    create: async req => serviceFromReq(req).createNested(req.allParams()),
+    destroy: async req => serviceFromReq(req).destroyNested(req.allParams())
   })
 }
