@@ -34,5 +34,24 @@ module.exports = (models, modelName) => ({
       .then()
 
     return 201
+  },
+  destroyNested: async record => {
+    let model = models[modelName]
+    let id = record.id
+
+    await Promise.all(_.map(async association => {
+      // Get Child Info
+      let childRecord = record[association.alias]
+      if (!childRecord) return
+
+      let childModel = models[association[association.type]]
+
+      // Destroy child
+      await childModel.destroy(childRecord).then()
+    }, model.associations))
+
+    await model.destroy({id})
+
+    return 200
   }
 })

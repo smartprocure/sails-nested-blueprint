@@ -1,4 +1,4 @@
-# sails-nested-blueprint
+﻿# sails-nested-blueprint
 As of sails 1.0, blueprints no longer support nested creates (passing along associated models during creates).
 This library brings it back in a non-obstrusive way.
 
@@ -6,7 +6,7 @@ This library brings it back in a non-obstrusive way.
 
 ### Blueprint (Easiest)
 The blueprint will automatically figure out which model to use just like sails blueprints.
-`blueprint` exposes a `create` method, so just do this in a controller method:
+`blueprint` exposes a `create` and a `destroy` method, so just do this in a controller method:
 
 ```js
 let {blueprint} = require('sails-nested-blueprint')
@@ -15,8 +15,9 @@ module.exports = blueprint
 ```
 
 ### Service
-You can also use the service directly if you need to perform a nested create as part of some other operation.
-On the service, it's called `createNested`.
+You can also use the service directly if you need to perform a nested
+create (or destroy) as part of some other operation.
+On the service, these functions are called `createNested` and `destroyNested`.
 
 ```js
 let {service} = require('sails-nested-blueprint')
