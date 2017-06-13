@@ -14,7 +14,7 @@ module.exports = (models, modelName) => ({
     let updates = await Promise.all(_.map(async association => {
       // Get Child Info
       let childRecord = record[association.alias]
-      if (!childRecord) return {}
+      if (!childRecord || _.isString(childRecord)) return {}
 
       let childModel = models[association[association.type]]
       let childModelAssociation = _.find({collection: modelName}, childModel.associations) ||
