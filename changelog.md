@@ -1,4 +1,7 @@
-﻿# 1.1.0
+﻿# 1.1.1
+- Supporting manual associations for attributes type `model` through an ObjectID as string
+
+# 1.1.0
 - Added nested destroy
 
 # 1.0.1
