@@ -1,0 +1,26 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: install
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run:
+          name: danger
+          command: npm run danger
+      - deploy:
+          name: Maybe Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+              npm publish
+            fi
