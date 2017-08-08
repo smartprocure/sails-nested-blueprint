@@ -1,4 +1,6 @@
-﻿# sails-nested-blueprint
+﻿[![CircleCI](https://circleci.com/gh/smartprocure/sails-nested-blueprint.svg?style=svg)](https://circleci.com/gh/smartprocure/sails-nested-blueprint)
+
+# sails-nested-blueprint
 As of sails 1.0, blueprints no longer support nested creates (passing along associated models during creates).
 This library brings it back in a non-obstrusive way.
 
