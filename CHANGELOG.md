@@ -1,4 +1,7 @@
-﻿# 1.1.2
+﻿# 1.1.3
+- Use latest duti version
+
+# 1.1.2
 - Add duti to the repo
 
 # 1.1.1
