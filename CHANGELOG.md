@@ -1,4 +1,7 @@
-﻿# 1.1.3
+﻿# 1.1.4
+- Always run duti in Circle
+
+# 1.1.3
 - Use latest duti version
 
 # 1.1.2
