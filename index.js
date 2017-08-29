@@ -1,5 +1,6 @@
+let _ = require('lodash/fp')
 let service = require('./service')
-let {controller} = require('sails-async')
+let {controller, method} = require('sails-async')
 
 // Lifted from sails blueprint hook's parseBlueprintOptions
 // Get the model identity from the action name (e.g. 'user/find').
@@ -10,9 +11,9 @@ module.exports = {
   service,
   getModelName,
   serviceFromReq,
-  blueprint: controller({
-    create: async req => serviceFromReq(req).createNested(req.allParams()),
-    destroy: async req => serviceFromReq(req).destroyNested(req.allParams()),
-    destroySoft: async req => serviceFromReq(req).destroySoft(req.allParams())
+  blueprint: _.extend(controller({
+    create: async req => serviceFromReq(req).createNested(req.allParams())
+  }), {
+    destroy: options => method(async req => serviceFromReq(req).destroy(options, req.allParams()))
   })
 }

@@ -33,43 +33,53 @@ module.exports = (models, modelName) => ({
       .set(_.reduce(_.extend, {}, updates))
       .then()
 
-    return 201
+    return _.extend({statusCode: 201}, await model.findOne({id}).then())
   },
-  destroyNested: async record => {
+  // destroyNested: async record => {
+  //   let model = models[modelName]
+  //   let id = record.id
+  //
+  //   await Promise.all(_.map(async association => {
+  //     // Get Child Info
+  //     let childRecord = record[association.alias]
+  //     if (!childRecord) return
+  //
+  //     let childModel = models[association[association.type]]
+  //
+  //     // Destroy child
+  //     await childModel.destroy(childRecord).then()
+  //   }, model.associations))
+  //
+  //   await model.destroy({id})
+  //
+  //   return 200
+  // },
+  destroy: async (options, record) => {
+    let {soft = false, cascade = false, customDelete, beforeDelete} = options
     let model = models[modelName]
     let id = record.id
 
-    await Promise.all(_.map(async association => {
-      // Get Child Info
-      let childRecord = record[association.alias]
-      if (!childRecord) return
+    if (_.isFunction(customDelete)) await customDelete(options, record, model, models)
+    else {
+      // Current cascade implementation supports deleting a matching association as part of the passed in deleted entity (record)
+      // TODO: Allow some sort of automatic cascading delete based on the associations of the deleted entity
+      if (cascade) {
+        await Promise.all(_.map(async association => {
+          // Get Child Info
+          let childRecord = record[association.alias]
+          if (!childRecord) return
+          if (_.isArray(childRecord)) childRecord = {id: _.map(child => child.id || child, childRecord)}
+          let childModel = models[association[association.type]]
 
-      let childModel = models[association[association.type]]
-
-      // Destroy child
-      await childModel.destroy(childRecord).then()
-    }, model.associations))
-
-    await model.destroy({id})
-
-    return 200
-  },
-  destroySoft: async record => {
-    let model = models[modelName]
-    let id = record.id
-
-    // await Promise.all(_.map(async association => {
-    //   // Get Child Info
-    //   let childRecord = record[association.alias]
-    //   if (!childRecord) return
-    //
-    //   let childModel = models[association[association.type]]
-    //
-    //   // Destroy child
-    //   //await childModel.destroy(childRecord).then()
-    // }, model.associations))
-
-    await model.update({id}, {isDeleted: true})
+          // Destroy child
+          if (soft) await childModel.update(childRecord, {isDeleted: true}).then()
+          else await childModel.destroy(childRecord).then()
+        }, model.associations))
+      }
+      if (_.isFunction(beforeDelete)) await beforeDelete(options, record, model, models)
+      if (soft) await model.update({id}, {isDeleted: true}).then()
+      else await model.destroy({id}).then()
+    }
 
     return 200
   }

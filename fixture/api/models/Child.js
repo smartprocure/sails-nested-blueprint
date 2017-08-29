@@ -7,10 +7,9 @@
 
 module.exports = {
   attributes: {
-    parentProperty: {type: 'string'},
-    children: {
-      collection: 'child',
-      via: 'parent'
+    childProperty: {type: 'string'},
+    parent: {
+      model: 'parent'
     }
   }
 }
