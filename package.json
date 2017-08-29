@@ -4,8 +4,10 @@
   "description": "Blueprints for nested waterline models for use in sails 1.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "danger": "duti"
+    "test": "jest",
+    "danger": "duti",
+    "lint": "standard",
+    "lint-fix": "standard --fix"
   },
   "repository": {
     "type": "git",
@@ -26,7 +28,30 @@
     "lodash": "^4.17.4",
     "sails-async": "^1.0.0"
   },
+  "config": {
+    "ghooks": {
+      "pre-commit": "npm run lint --fix"
+    }
+  },
   "devDependencies": {
-    "duti": "latest"
+    "duti": "latest",
+    "ghooks": "^2.0.0",
+    "jest": "^20.0.4",
+    "standard": "^10.0.3"
+  },
+  "jest": {
+    "setupTestFrameworkScriptFile": "<rootDir>/fixture/setup.js",
+    "testMatch": [
+      "<rootDir>/fixture/test/**/?(*.)(spec|test).js?(x)"
+    ]
+  },
+  "standard": {
+    "env": [
+      "jest"
+    ],
+    "ignore": [
+      "fixture/config/",
+      "fixture/app.js"
+    ]
   }
 }

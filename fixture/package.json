@@ -1,0 +1,27 @@
+{
+  "name": "fixture",
+  "private": true,
+  "version": "0.0.0",
+  "description": "a Sails application",
+  "keywords": [],
+  "dependencies": {
+    "async": "2.0.1",
+    "lodash": "^4.17.4",
+    "sails": "^1.0.0-37",
+    "sails-hook-orm": "^2.0.0-16",
+    "sails-hook-sockets": "^1.4.0"
+  },
+  "devDependencies": {
+    "eslint": "3.5.0",
+    "supertest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dshishkov/fixture.git"
+  },
+  "author": "dshishkov",
+  "license": "",
+  "engines": {
+    "node": "8"
+  }
+}

@@ -21,11 +21,11 @@ module.exports = (models, modelName) => ({
                                   _.find({model: modelName}, childModel.associations)
 
       // Create child
-      childRecord[childModelAssociation.alias] = childModelAssociation.type == 'collection' ? [id] : id
+      childRecord[childModelAssociation.alias] = childModelAssociation.type === 'collection' ? [id] : id
       let {childId} = await childModel.create(childRecord).meta({fetch: true}).then()
 
       return {
-        [association.alias]: association.type == 'collection' ?  [childId] : childId
+        [association.alias]: association.type === 'collection' ? [childId] : childId
       }
     }, model.associations))
 
@@ -51,6 +51,25 @@ module.exports = (models, modelName) => ({
     }, model.associations))
 
     await model.destroy({id})
+
+    return 200
+  },
+  destroySoft: async record => {
+    let model = models[modelName]
+    let id = record.id
+
+    // await Promise.all(_.map(async association => {
+    //   // Get Child Info
+    //   let childRecord = record[association.alias]
+    //   if (!childRecord) return
+    //
+    //   let childModel = models[association[association.type]]
+    //
+    //   // Destroy child
+    //   //await childModel.destroy(childRecord).then()
+    // }, model.associations))
+
+    await model.update({id}, {isDeleted: true})
 
     return 200
   }
