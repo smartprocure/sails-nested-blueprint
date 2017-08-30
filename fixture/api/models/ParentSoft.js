@@ -7,12 +7,10 @@
 
 module.exports = {
   attributes: {
-    childProperty: {type: 'string'},
-    parent: {
-      model: 'parent'
-    },
-    parentSoft: {
-      model: 'parentSoft'
+    parentProperty: {type: 'string'},
+    children: {
+      collection: 'child',
+      via: 'parentSoft'
     }
   }
 }

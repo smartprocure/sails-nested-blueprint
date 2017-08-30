@@ -6,7 +6,7 @@
  */
 
 const blueprint = require('../../../index').blueprintOptions({
-  destroy: {cascade: true}
+  destroy: {soft: true, cascade: true}
 })
 
 module.exports = blueprint
