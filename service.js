@@ -67,6 +67,8 @@ module.exports = (models, modelName) => {
       return _.extend({statusCode: 201}, await model.findOne({id}).then())
     },
     destroy,
-    destroyNested: destroy({cascade: true})
+    destroySoft: destroy({soft: true}),
+    destroyNested: destroy({cascade: true}),
+    destroyNestedSoft: destroy({soft: true, cascade: true})
   }
 }
