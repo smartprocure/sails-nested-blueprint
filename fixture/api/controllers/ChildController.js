@@ -7,6 +7,4 @@
 
 const blueprint = require('../../../index').blueprint
 
-module.exports = {
-  create: blueprint.create
-}
+module.exports = blueprint
