@@ -15,9 +15,8 @@ module.exports = {
     create,
     destroy: async req => serviceFromReq(req).destroyNested(req.allParams())
   }),
-  blueprintOptions: (options = {}) => (controller({
+  blueprintOptions: (options = {}) => controller({
     create,
     destroy: async req => serviceFromReq(req).destroy(options.destroy, req.allParams())
   })
-  )
 }
