@@ -14,12 +14,27 @@ The blueprint will automatically figure out which model to use just like sails b
 let {blueprint} = require('sails-nested-blueprint')
 module.exports = blueprint
 
+### Blueprint with options (Soft Delete)
+Works just like the regular blueprint example, howerver allows passing an object with options for each of the blueprint methods.
+Currently only `delete` supports options such as `cascade` (causes any associated record passed in with the main record to be deleted, same as `serviceFromReq(req).destroyNested`)
+and `soft` (keeps the record but sets a flag `IsDeleted` to true on the affected records).
+
+### "Soft Delete" Setup
+In order for soft delete to work you have to add a boolean attribute to the model definition or in /config/models.js (to enable all your models to support soft deletes)
+
+```js
+let {blueprint} = require('sails-nested-blueprint')
+// model using these blueprints will have its `isDeleted` attribute set to true instead of being deleted from the data store.
+// If associated models are passed with the main record, they will also be soft-deleted since cascade is set to true
+module.exports = blueprintOptions({destroy: {soft: true, cascade: true}})
+
 ```
 
 ### Service
 You can also use the service directly if you need to perform a nested
 create (or destroy) as part of some other operation.
 On the service, these functions are called `createNested` and `destroyNested`.
+To perform a soft delete with a service use `destroy({soft: true}, record)` or `destroySoft(record)` or combine both nested and soft deletion `destroyNestedSoft(record)`
 
 ```js
 let {service} = require('sails-nested-blueprint')
