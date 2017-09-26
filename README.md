@@ -8,7 +8,7 @@ This library brings it back in a non-obstrusive way.
 
 ### Blueprint (Easiest)
 The blueprint will automatically figure out which model to use just like sails blueprints.
-`blueprint` exposes a `create` and a `destroy` method, so just do this in a controller method:
+`blueprint` exposes a `create`, a `destroy` and a `count` method, so just do this in a controller method:
 
 ```js
 let {blueprint} = require('sails-nested-blueprint')
@@ -29,6 +29,10 @@ let {blueprint} = require('sails-nested-blueprint')
 module.exports = blueprintOptions({destroy: {soft: true, cascade: true}})
 
 ```
+
+The `count` endpoint allows you to reach to `/[model]/count` with a
+query to retrieve the number of found elements, instead of the full
+JSON object.
 
 ### Service
 You can also use the service directly if you need to perform a nested
