@@ -1,13 +1,14 @@
 {
   "name": "sails-nested-blueprint",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Blueprints for nested waterline models for use in sails 1.0",
   "main": "index.js",
   "scripts": {
     "test": "jest",
     "danger": "duti",
     "lint": "standard",
-    "lint-fix": "standard --fix"
+    "lint-fix": "standard --fix",
+    "lint:ci": "npm run lint | standard-json > lint-results.json"
   },
   "repository": {
     "type": "git",
@@ -37,7 +38,8 @@
     "duti": "latest",
     "ghooks": "^2.0.0",
     "jest": "^20.0.4",
-    "standard": "^10.0.3"
+    "standard": "^10.0.3",
+    "standard-json": "^1.0.2"
   },
   "jest": {
     "setupTestFrameworkScriptFile": "<rootDir>/fixture/setup.js",
