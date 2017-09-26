@@ -1,4 +1,7 @@
-﻿# 1.2.0
+﻿# 1.2.1
+- Output lint for Duti
+
+# 1.2.0
 - Add "soft" delete. Requires the model to have a boolean attribute IsDeleted (ideally should be added to /config/models.js)
 
 # 1.1.4
