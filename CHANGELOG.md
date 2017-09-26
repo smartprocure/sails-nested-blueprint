@@ -1,4 +1,7 @@
-﻿# 1.2.1
+﻿# 1.3.0
+- Add count.
+
+# 1.2.1
 - Output lint for Duti
 
 # 1.2.0
