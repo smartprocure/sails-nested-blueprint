@@ -1,6 +1,6 @@
 let _ = require('lodash/fp')
 
-module.exports = (models, modelName) => {
+module.exports = (models, modelName, req, res) => {
   let destroy = _.curry(async (options, record) => {
     let {soft = false, cascade = false, customDelete, beforeDelete} = options
     let model = models[modelName]
@@ -30,6 +30,11 @@ module.exports = (models, modelName) => {
 
     return 200
   })
+
+  let count = async record => {
+    let model = models[modelName]
+    res.send(await model.count(record))
+  }
 
   return {
     createNested: async record => {
@@ -69,6 +74,7 @@ module.exports = (models, modelName) => {
     destroy,
     destroySoft: destroy({soft: true}),
     destroyNested: destroy({cascade: true}),
-    destroyNestedSoft: destroy({soft: true, cascade: true})
+    destroyNestedSoft: destroy({soft: true, cascade: true}),
+    count
   }
 }
