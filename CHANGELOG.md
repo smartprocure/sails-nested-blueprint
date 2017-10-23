@@ -1,4 +1,7 @@
-﻿# 1.3.0
+﻿# 1.3.1
+- Add publish events for create/destroy.
+
+# 1.3.0
 - Add count.
 
 # 1.2.1

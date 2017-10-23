@@ -1,4 +1,6 @@
 let _ = require('lodash/fp')
+let publishDestroy = (model, id, req) => model._publishDestroy(id, req)
+let publishCreate = (model, record, req) => model._publishCreate(record, req)
 
 module.exports = (models, modelName, req, res) => {
   let destroy = _.curry(async (options, record) => {
@@ -28,6 +30,7 @@ module.exports = (models, modelName, req, res) => {
       else await model.destroy({id}).then()
     }
 
+    publishDestroy(model, id)
     return 200
   })
 
@@ -69,7 +72,10 @@ module.exports = (models, modelName, req, res) => {
         .set(_.reduce(_.extend, {}, updates))
         .then()
 
-      return _.extend({statusCode: 201}, await model.findOne({id}).then())
+      let newRecord = await model.findOne({id}).then()
+
+      publishCreate(model, newRecord)
+      return _.extend({statusCode: 201}, newRecord)
     },
     destroy,
     destroySoft: destroy({soft: true}),
