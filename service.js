@@ -36,7 +36,7 @@ module.exports = (models, modelName, req, res) => {
 
   let count = async record => {
     let model = models[modelName]
-    res.send(await model.count(record))
+    return {count: await model.count(record)}
   }
 
   return {

@@ -1,4 +1,8 @@
-﻿# 1.3.1
+﻿# 1.3.2
+- Making sure count returns an object instead of using res.send
+  directly.
+
+ # 1.3.1
 - Add publish events for create/destroy.
 
 # 1.3.0
