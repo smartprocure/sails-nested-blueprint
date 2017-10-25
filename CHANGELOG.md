@@ -1,4 +1,9 @@
-﻿# 1.3.2
+﻿# 1.3.3
+- Supporting shared methods by getting the model out of params, and
+  ignoring the model from the params once we pass the params to the
+  methods.
+
+ # 1.3.2
 - Making sure count returns an object instead of using res.send
   directly.
 
