@@ -1,4 +1,7 @@
-﻿# 1.3.3
+﻿# 1.4.0
+- Added the cachedFind method.
+
+# 1.3.3
 - Supporting shared methods by getting the model out of params, and
   ignoring the model from the params once we pass the params to the
   methods.

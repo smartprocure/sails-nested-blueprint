@@ -8,7 +8,8 @@ This library brings it back in a non-obstrusive way.
 
 ### Blueprint (Easiest)
 The blueprint will automatically figure out which model to use just like sails blueprints.
-`blueprint` exposes a `create`, a `destroy` and a `count` method, so just do this in a controller method:
+`blueprint` exposes a `create`, a `destroy` a `count`, and a
+`cachedFind` method, so just do this in a controller method:
 
 ```js
 let {blueprint} = require('sails-nested-blueprint')
@@ -33,6 +34,36 @@ module.exports = blueprintOptions({destroy: {soft: true, cascade: true}})
 The `count` endpoint allows you to reach to `/[model]/count` with a
 query to retrieve the number of found elements, instead of the full
 JSON object.
+
+Specifically for the `cachedFind` method you need to provide three
+configuration options, a `get` and a `set` pair of functions, which
+will be the ones you'll use to retrieve the cache and to store the
+cache. See the following code as an example:
+
+```js
+let sails = require('sails')
+let redis = require('redis')
+let Promise = require('bluebird')
+
+Promise.promisifyAll(redis.RedisClient.prototype)
+Promise.promisifyAll(redis.Multi.prototype)
+
+let client = redis.createClient(sails.config.redis)
+let expiration = 60
+
+let blueprint = require('sails-nested-blueprint').blueprintOptions({
+  cache: {
+    get: async (req, key) => !req.user && JSON.parse(await client.getAsync(key)),
+    set: async (key, val) => {
+      try {
+        await client.setexAsync(key, expiration, JSON.stringify(val))
+      } catch (e) {
+        console.error('Failed to setexAsync', { key, val })
+      }
+    }
+  },
+})
+```
 
 ### Service
 You can also use the service directly if you need to perform a nested
