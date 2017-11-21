@@ -36,7 +36,8 @@ query to retrieve the number of found elements, instead of the full
 JSON object.
 
 Specifically for the `cachedFind` and the `clearCacheUpdate` methods, you need to provide
-configuration options: a `get`, a `set` and a `del` functions, and a
+a `cache` object in the configuration options passed to
+`blueprintOptions`: a `get`, a `set` and a `del` functions, and a
 `prefix`. They will be the ones you will use to retrieve the cache and
 to store the cache. See the following code as an example:
 
@@ -83,6 +84,11 @@ let blueprint = require('sails-nested-blueprint').blueprintOptions({
 module.exports.find = blueprint.cachedFind
 module.exports.update = blueprint.clearCacheUpdate
 ```
+
+**NOTE** caching can be bypassed by returning false on an optional
+a `keygen` property passed to the options of `blueprintOptions`.
+This function receives the request object, so it can be personalized
+for anything request-related.
 
 ### Service
 You can also use the service directly if you need to perform a nested
