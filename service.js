@@ -1,8 +1,41 @@
+let F = require('futil-js')
 let _ = require('lodash/fp')
 let publishDestroy = (model, id, req) => model._publishDestroy(id, req)
 let publishCreate = (model, record, req) => model._publishCreate(record, req)
+let hash = require('object-hash')
+
+let blacklist = ['limit', 'sort']
+let memoryCache = {}
+let defaultCacheProvider = {
+  get: key => _.get(key, memoryCache),
+  set: (key, value) => F.setOn(key, value, memoryCache)
+}
+let keygen = (req, res, params, queryObject, modelName) => {
+  if (!req.user) return
+  return hash(queryObject)
+}
 
 module.exports = (models, modelName, req, res) => {
+  let cachedFind = _.curry(async (options, params) => {
+    let { get, set } = _.extend(options.provider, defaultCacheProvider)
+    let key = (options.keygen || keygen)(req, res, params, modelName)
+    let queryObject = _.omit(blacklist, params)
+    if (queryObject.isDeleted) queryObject.isDeleted = false
+    let cached
+    if (key) cached = await get(key)
+    if (key && cached) {
+      return cached
+    } else {
+      let build = models[modelName].find(queryObject)
+      _.each(key => {
+        if (params[key]) build = build[key](params[key])
+      }, blacklist)
+      let result = await build.then()
+      await set(key, result)
+      return result
+    }
+  })
+
   let destroy = _.curry(async (options, record) => {
     let {soft = false, cascade = false, customDelete, beforeDelete} = options
     let model = models[modelName]
@@ -39,48 +72,51 @@ module.exports = (models, modelName, req, res) => {
     return {count: await model.count(record)}
   }
 
+  let createNested = async record => {
+    let model = models[modelName]
+
+    let associationIds = _.flow(
+      _.map('alias'),
+      _.filter(id => _.isPlainObject(record[id]))
+    )(model.associations)
+
+    let {id} = await model.create(_.omit(associationIds, record)).meta({fetch: true}).then()
+
+    let updates = await Promise.all(_.map(async association => {
+      // Get Child Info
+      let childRecord = record[association.alias]
+      if (!childRecord || _.isString(childRecord)) return {}
+
+      let childModel = models[association[association.type]]
+      let childModelAssociation = _.find({collection: modelName}, childModel.associations) ||
+        _.find({model: modelName}, childModel.associations)
+
+      // Create child
+      childRecord[childModelAssociation.alias] = childModelAssociation.type === 'collection' ? [id] : id
+      let {childId} = await childModel.create(childRecord).meta({fetch: true}).then()
+
+      return {
+        [association.alias]: association.type === 'collection' ? [childId] : childId
+      }
+    }, model.associations))
+
+    await model.update({id})
+      .set(_.reduce(_.extend, {}, updates))
+      .then()
+
+    let newRecord = await model.findOne({id}).then()
+
+    publishCreate(model, newRecord)
+    return _.extend({statusCode: 201}, newRecord)
+  }
+
   return {
-    createNested: async record => {
-      let model = models[modelName]
-
-      let associationIds = _.flow(
-        _.map('alias'),
-        _.filter(id => _.isPlainObject(record[id]))
-      )(model.associations)
-
-      let {id} = await model.create(_.omit(associationIds, record)).meta({fetch: true}).then()
-
-      let updates = await Promise.all(_.map(async association => {
-        // Get Child Info
-        let childRecord = record[association.alias]
-        if (!childRecord || _.isString(childRecord)) return {}
-
-        let childModel = models[association[association.type]]
-        let childModelAssociation = _.find({collection: modelName}, childModel.associations) ||
-          _.find({model: modelName}, childModel.associations)
-
-        // Create child
-        childRecord[childModelAssociation.alias] = childModelAssociation.type === 'collection' ? [id] : id
-        let {childId} = await childModel.create(childRecord).meta({fetch: true}).then()
-
-        return {
-          [association.alias]: association.type === 'collection' ? [childId] : childId
-        }
-      }, model.associations))
-
-      await model.update({id})
-        .set(_.reduce(_.extend, {}, updates))
-        .then()
-
-      let newRecord = await model.findOne({id}).then()
-
-      publishCreate(model, newRecord)
-      return _.extend({statusCode: 201}, newRecord)
-    },
+    cachedFind,
+    count,
+    createNested,
     destroy,
-    destroySoft: destroy({soft: true}),
     destroyNested: destroy({cascade: true}),
     destroyNestedSoft: destroy({soft: true, cascade: true}),
-    count
+    destroySoft: destroy({soft: true})
   }
 }
