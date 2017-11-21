@@ -4,15 +4,14 @@ let publishDestroy = (model, id, req) => model._publishDestroy(id, req)
 let publishCreate = (model, record, req) => model._publishCreate(record, req)
 let hash = require('object-hash')
 
+let blacklist = ['limit', 'sort']
 let memoryCache = {}
 let defaultCacheProvider = {
   get: key => _.get(key, memoryCache),
-  set: (key, value) => F.setOn(key, value, memoryCache),
+  set: (key, value) => F.setOn(key, value, memoryCache)
 }
-let keygen = (req, res, params, modelName) => {
+let keygen = (req, res, params, queryObject, modelName) => {
   if (!req.user) return
-  let queryObject = _.omit(['limit', 'sort'], params)
-  if (queryObject.isDeleted) queryObject.isDeleted = false
   return hash(queryObject)
 }
 
@@ -20,6 +19,8 @@ module.exports = (models, modelName, req, res) => {
   let cachedFind = _.curry(async (options, params) => {
     let { get, set } = _.extend(options.provider, defaultCacheProvider)
     let key = (options.keygen || keygen)(req, res, params, modelName)
+    let queryObject = _.omit(blacklist, params)
+    if (queryObject.isDeleted) queryObject.isDeleted = false
     let cached
     if (key) cached = await get(key)
     if (key && cached) {
