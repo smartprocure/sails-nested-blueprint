@@ -1,4 +1,7 @@
-﻿# 1.4.0
+﻿# 1.4.1
+- Fixes for the cachedFind method.
+
+ # 1.4.0
 - Added the cachedFind method.
 
 # 1.3.3
