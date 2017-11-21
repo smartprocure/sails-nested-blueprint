@@ -6,9 +6,10 @@ let hash = require('object-hash')
 
 let memoryCache = {}
 let defaultCacheProvider = {
-  get: (req, key) => _.get(key, memoryCache),
-  set: (req, key, value) => F.setOn(key, value, memoryCache),
+  get: key) => _.get(key, memoryCache),
+  set: (key, value) => F.setOn(key, value, memoryCache),
   keyGen: (req, res, params, modelName) => {
+    if (!req.user) return
     let queryObject = _.omit(['limit', 'sort'], params)
     if (queryObject.isDeleted) queryObject.isDeleted = false
     return hash(queryObject)
@@ -19,8 +20,9 @@ module.exports = (models, modelName, req, res) => {
   let cachedFind = _.curry(async (options, params) => {
     let { get, set, keygen } = _.extend(options.provider, defaultCacheProvider)
     let key = keygen(req, res, params, modelName)
-    let cached = await get(req, key)
-    if (cached) {
+    let cached
+    if (key) cached = await get(key)
+    if (key && cached) {
       return cached
     } else {
       let build = models[modelName].find(queryObject)
@@ -28,7 +30,7 @@ module.exports = (models, modelName, req, res) => {
         if (params[key]) build = build[key](params[key])
       }, blacklist)
       let result = await build.then()
-      await set(req, key, result)
+      await set(key, result)
       return result
     }
   })

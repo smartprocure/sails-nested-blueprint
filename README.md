@@ -54,8 +54,8 @@ let expiration = 60
 let blueprint = require('sails-nested-blueprint').blueprintOptions({
   cache: {
     provider: {
-      get: async (req, key) => !req.user && JSON.parse(await client.getAsync(key)),
-      set: async (req, key, val) => {
+      get: async key => JSON.parse(await client.getAsync(key)),
+      set: async (key, val) => {
         try {
           await client.setexAsync(key, expiration, JSON.stringify(val))
         } catch (e) {
