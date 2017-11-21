@@ -106,6 +106,6 @@ module.exports = (models, modelName, req, res) => {
     destroy,
     destroyNested: destroy({cascade: true}),
     destroyNestedSoft: destroy({soft: true, cascade: true}),
-    destroySoft: destroy({soft: true}),
+    destroySoft: destroy({soft: true})
   }
 }
