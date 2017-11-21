@@ -1,4 +1,7 @@
-﻿# 1.4.2
+﻿# 1.4.3
+- Improved the cached API.
+
+# 1.4.2
 - Added the clearCacheUpdate method, and improved the cachedFind
   method to populate associations.
 

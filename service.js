@@ -62,7 +62,7 @@ module.exports = (models, modelName, req, res) => {
     let { get, del } = _.extend(defaultCacheProvider, options.provider)
     let prefix = options.prefix
     let keys = await get(`${prefix}-keys`)
-    let result = await model.update(params)
+    let result = await model.update(_.pick('id', params), _.omit('id', params))
     if (_.get(params.id, keys)) await del(keys[params.id])
     publishUpdate(model, params.id, params)
     return result
