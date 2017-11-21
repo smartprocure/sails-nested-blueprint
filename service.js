@@ -6,20 +6,20 @@ let hash = require('object-hash')
 
 let memoryCache = {}
 let defaultCacheProvider = {
-  get: key) => _.get(key, memoryCache),
+  get: key => _.get(key, memoryCache),
   set: (key, value) => F.setOn(key, value, memoryCache),
-  keyGen: (req, res, params, modelName) => {
-    if (!req.user) return
-    let queryObject = _.omit(['limit', 'sort'], params)
-    if (queryObject.isDeleted) queryObject.isDeleted = false
-    return hash(queryObject)
-  }
+}
+let keygen = (req, res, params, modelName) => {
+  if (!req.user) return
+  let queryObject = _.omit(['limit', 'sort'], params)
+  if (queryObject.isDeleted) queryObject.isDeleted = false
+  return hash(queryObject)
 }
 
 module.exports = (models, modelName, req, res) => {
   let cachedFind = _.curry(async (options, params) => {
-    let { get, set, keygen } = _.extend(options.provider, defaultCacheProvider)
-    let key = keygen(req, res, params, modelName)
+    let { get, set } = _.extend(options.provider, defaultCacheProvider)
+    let key = (options.keygen || keygen)(req, res, params, modelName)
     let cached
     if (key) cached = await get(key)
     if (key && cached) {
