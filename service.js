@@ -2,38 +2,70 @@ let F = require('futil-js')
 let _ = require('lodash/fp')
 let publishDestroy = (model, id, req) => model._publishDestroy(id, req)
 let publishCreate = (model, record, req) => model._publishCreate(record, req)
+let publishUpdate = (model, id, changes) => model._publishUpdate(id, changes)
 let hash = require('object-hash')
 
 let blacklist = ['limit', 'sort']
 let memoryCache = {}
 let defaultCacheProvider = {
   get: key => _.get(key, memoryCache),
-  set: (key, value) => F.setOn(key, value, memoryCache)
+  set: (key, value) => F.setOn(key, value, memoryCache),
+  del: _.each(key => delete memoryCache[key])
 }
-let keygen = (req, res, params, queryObject, modelName) => {
-  if (req.user) return
-  return hash(queryObject)
+let keygen = (req, res, params, queryObject, modelName) =>
+  hash(queryObject)
+
+let syncIDs = async (prefix, key, result, get, set) => {
+  let ids = []
+  F.deepMap(x => {
+    let id = _.get('id', x)
+    if (id) ids.push(id)
+    return x
+  }, result)
+  let keys = await get(`${prefix}-keys`)
+  if (!_.isPlainObject(keys)) keys = {}
+  _.each(id => {
+    keys[id] = _.uniq(_.concat(keys[id] || [], key))
+  }, ids)
+  await set(`${prefix}-keys`, keys)
 }
 
 module.exports = (models, modelName, req, res) => {
   let cachedFind = _.curry(async (options, params) => {
+    let model = models[modelName]
     let { get, set } = _.extend(defaultCacheProvider, options.provider)
+    let prefix = options.prefix
     let queryObject = _.omit(blacklist, params)
     if (queryObject.isDeleted) queryObject.isDeleted = false
     let key = (options.keygen || keygen)(req, res, params, queryObject, modelName)
     let cached
-    if (key) cached = await get(key)
+    if (key) cached = await get(`${prefix}-${key}`)
     if (key && cached) {
       return cached
     } else {
-      let build = models[modelName].find(queryObject)
-      _.each(key => {
-        if (params[key]) build = build[key](params[key])
+      let build = model.find(queryObject)
+      _.each(blacklisted => {
+        if (params[blacklisted]) build = build[blacklisted](params[blacklisted])
       }, blacklist)
+      _.each(({ alias }) => {
+        build = build.populate(alias)
+      }, model.associations)
       let result = await build.then()
-      await set(key, result)
+      await syncIDs(prefix, `${prefix}-${key}`, result, get, set)
+      await set(`${prefix}-${key}`, result)
       return result
     }
+  })
+
+  let clearCacheUpdate = _.curry(async (options, params) => {
+    let model = models[modelName]
+    let { get, del } = _.extend(defaultCacheProvider, options.provider)
+    let prefix = options.prefix
+    let keys = await get(`${prefix}-keys`)
+    let result = await model.update(params)
+    if (_.get(params.id, keys)) await del(keys[params.id])
+    publishUpdate(model, params.id, params)
+    return result
   })
 
   let destroy = _.curry(async (options, record) => {
@@ -112,6 +144,7 @@ module.exports = (models, modelName, req, res) => {
 
   return {
     cachedFind,
+    clearCacheUpdate,
     count,
     createNested,
     destroy,

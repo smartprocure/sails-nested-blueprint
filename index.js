@@ -21,6 +21,7 @@ module.exports = {
   blueprintOptions: (options = {}) => controller({
     create,
     cachedFind: async req => serviceFromReq(req).cachedFind(options.cache, cleanParams(req)),
+    clearCacheUpdate: async req => serviceFromReq(req).clearCacheUpdate(options.cache, cleanParams(req)),
     destroy: async req => serviceFromReq(req).destroy(options.destroy, cleanParams(req)),
     count: async (req, res) => serviceFromReq(req, res).count(cleanParams(req))
   })

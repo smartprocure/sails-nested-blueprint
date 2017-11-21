@@ -8,8 +8,8 @@ This library brings it back in a non-obstrusive way.
 
 ### Blueprint (Easiest)
 The blueprint will automatically figure out which model to use just like sails blueprints.
-`blueprint` exposes a `create`, a `destroy` a `count`, and a
-`cachedFind` method, so just do this in a controller method:
+`blueprint` exposes a `create`, a `destroy` a `count`, a
+`cachedFind` and a `clearCacheUpdate` method, so just do this in a controller method:
 
 ```js
 let {blueprint} = require('sails-nested-blueprint')
@@ -35,10 +35,11 @@ The `count` endpoint allows you to reach to `/[model]/count` with a
 query to retrieve the number of found elements, instead of the full
 JSON object.
 
-Specifically for the `cachedFind` method you need to provide three
-configuration options, a `get` and a `set` pair of functions, which
-will be the ones you will use to retrieve the cache and to store the
-cache. See the following code as an example:
+Specifically for the `cachedFind` and the `clearCacheUpdate` methods, you need to provide
+a `cache` object in the configuration options passed to
+`blueprintOptions`: a `get`, a `set` and a `del` functions, and a
+`prefix`. They will be the ones you will use to retrieve the cache and
+to store the cache. See the following code as an example:
 
 ```js
 let sails = require('sails')
@@ -49,23 +50,45 @@ Promise.promisifyAll(redis.RedisClient.prototype)
 Promise.promisifyAll(redis.Multi.prototype)
 
 let client = redis.createClient(sails.config.redis)
-let expiration = 60
+let expiration = 60 // a minute
+let keysExpiration = 60 * 30 // 30 minutes
+let prefix = 'my-cache'
 
 let blueprint = require('sails-nested-blueprint').blueprintOptions({
   cache: {
+    prefix,
     provider: {
       get: async key => JSON.parse(await client.getAsync(key)),
-      set: async (key, val) => {
+      async set(key, val) {
+        let exp = (key === `${prefix}-keys`) keysExpiration : expiration
         try {
-          await client.setexAsync(key, expiration, JSON.stringify(val))
+          await client.setexAsync(
+            key,
+            exp,
+            JSON.stringify(val)
+          )
         } catch (e) {
-          console.error('Failed to setexAsync', { key, val })
+          console.error('Failed to setexAsync', {
+            key,
+            val,
+          })
         }
+      },
+      async del(keys) {
+        await client.delAsync(keys)
       }
-    }
+    },
   },
 })
+
+module.exports.find = blueprint.cachedFind
+module.exports.update = blueprint.clearCacheUpdate
 ```
+
+**NOTE** caching can be bypassed by returning false on an optional
+a `keygen` property passed to the options of `blueprintOptions`.
+This function receives the request object, so it can be personalized
+for anything request-related.
 
 ### Service
 You can also use the service directly if you need to perform a nested
