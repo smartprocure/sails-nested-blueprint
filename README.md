@@ -8,8 +8,7 @@ This library brings it back in a non-obstrusive way.
 
 ### Blueprint (Easiest)
 The blueprint will automatically figure out which model to use just like sails blueprints.
-`blueprint` exposes a `create`, a `destroy` a `count`, a
-`cachedFind` and a `clearCacheUpdate` method, so just do this in a controller method:
+`blueprint` exposes a `create`, a `destroy` and a `count`, so just do this in a controller method:
 
 ```js
 let {blueprint} = require('sails-nested-blueprint')
@@ -35,11 +34,18 @@ The `count` endpoint allows you to reach to `/[model]/count` with a
 query to retrieve the number of found elements, instead of the full
 JSON object.
 
-Specifically for the `cachedFind` and the `clearCacheUpdate` methods, you need to provide
-a `cache` object in the configuration options passed to
-`blueprintOptions`: a `get`, a `set` and a `del` functions, and a
-`prefix`. They will be the ones you will use to retrieve the cache and
-to store the cache. See the following code as an example:
+## Cached Methods
+
+We currently provide a couple of methods that make use of a simple but
+extensible caching mechanism. The methods are `find` and `update`, and
+to be able to use them, you'll need to provide a `cache` object in the
+configuration options passed to
+`blueprintOptions`. The `cache` configuration object will have: a
+`provider` object containing a `get`, a `set` and a `del` functions,
+and a `prefix` alongsides the provider. See
+the following code as an example of how to use these methods on a
+Sails controller:
+
 
 ```js
 let sails = require('sails')
@@ -60,7 +66,7 @@ let blueprint = require('sails-nested-blueprint').blueprintOptions({
     provider: {
       get: async key => JSON.parse(await client.getAsync(key)),
       async set(key, val) {
-        let exp = (key === `${prefix}-keys`) keysExpiration : expiration
+        let exp = (key === `${prefix}-keys`) ? keysExpiration : expiration
         try {
           await client.setexAsync(
             key,
@@ -81,8 +87,8 @@ let blueprint = require('sails-nested-blueprint').blueprintOptions({
   },
 })
 
-module.exports.find = blueprint.cachedFind
-module.exports.update = blueprint.clearCacheUpdate
+module.exports.find = blueprint.find
+module.exports.update = blueprint.update
 ```
 
 **NOTE** caching can be bypassed by returning false on an optional
