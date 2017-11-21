@@ -11,16 +11,16 @@ let defaultCacheProvider = {
   set: (key, value) => F.setOn(key, value, memoryCache)
 }
 let keygen = (req, res, params, queryObject, modelName) => {
-  if (!req.user) return
+  if (req.user) return
   return hash(queryObject)
 }
 
 module.exports = (models, modelName, req, res) => {
   let cachedFind = _.curry(async (options, params) => {
-    let { get, set } = _.extend(options.provider, defaultCacheProvider)
-    let key = (options.keygen || keygen)(req, res, params, modelName)
+    let { get, set } = _.extend(defaultCacheProvider, options.provider)
     let queryObject = _.omit(blacklist, params)
     if (queryObject.isDeleted) queryObject.isDeleted = false
+    let key = (options.keygen || keygen)(req, res, params, queryObject, modelName)
     let cached
     if (key) cached = await get(key)
     if (key && cached) {
