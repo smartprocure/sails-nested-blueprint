@@ -12,10 +12,8 @@ let defaultCacheProvider = {
   set: (key, value) => F.setOn(key, value, memoryCache),
   del: _.each(key => delete memoryCache[key])
 }
-let keygen = (req, res, params, queryObject, modelName) => {
-  if (req.user) return
-  return hash(queryObject)
-}
+let keygen = (req, res, params, queryObject, modelName) =>
+  hash(queryObject)
 
 let syncIDs = async (prefix, key, result, get, set) => {
   let ids = []
