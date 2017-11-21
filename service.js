@@ -1,16 +1,24 @@
+let F = require('futil-js')
 let _ = require('lodash/fp')
 let publishDestroy = (model, id, req) => model._publishDestroy(id, req)
 let publishCreate = (model, record, req) => model._publishCreate(record, req)
 let hash = require('object-hash')
 
-let blacklist = ['limit', 'sort']
+let memoryCache = {}
+let defaultCacheProvider = {
+  get: (req, key) => _.get(key, memoryCache),
+  set: (req, key, value) => F.setOn(key, value, memoryCache),
+  keyGen: (req, res, params, modelName) => {
+    let queryObject = _.omit(['limit', 'sort'], params)
+    if (queryObject.isDeleted) queryObject.isDeleted = false
+    return hash(queryObject)
+  }
+}
 
 module.exports = (models, modelName, req, res) => {
   let cachedFind = _.curry(async (options, params) => {
-    let {get, set} = options
-    let queryObject = _.omit(blacklist, params)
-    if (queryObject.isDeleted) queryObject.isDeleted = false
-    let key = hash(queryObject)
+    let { get, set, keygen } = _.extend(options.provider, defaultCacheProvider)
+    let key = keygen(req, res, params, modelName)
     let cached = await get(req, key)
     if (cached) {
       return cached
@@ -20,7 +28,7 @@ module.exports = (models, modelName, req, res) => {
         if (params[key]) build = build[key](params[key])
       }, blacklist)
       let result = await build.then()
-      await set(key, result)
+      await set(req, key, result)
       return result
     }
   })
