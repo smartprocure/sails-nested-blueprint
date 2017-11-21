@@ -37,7 +37,7 @@ JSON object.
 
 Specifically for the `cachedFind` method you need to provide three
 configuration options, a `get` and a `set` pair of functions, which
-will be the ones you'll use to retrieve the cache and to store the
+will be the ones you will use to retrieve the cache and to store the
 cache. See the following code as an example:
 
 ```js
