@@ -1,4 +1,8 @@
-﻿# 1.4.1
+﻿# 1.4.2
+- Added the clearCacheUpdate method, and improved the cachedFind
+  method to populate associations.
+
+# 1.4.1
 - Fixes for the cachedFind method.
 
  # 1.4.0
