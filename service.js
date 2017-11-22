@@ -38,6 +38,18 @@ let subscribeToAllIDs = (req, model, result) => {
   model._watch(req)
 }
 
+let findPopulated = async (model, query, params = {}) => {
+  let build = model.find(query)
+  _.each(blacklisted => {
+    if (params[blacklisted]) build = build[blacklisted](params[blacklisted])
+  }, blacklist)
+  _.each(({ alias }) => {
+    build = build.populate(alias)
+  }, model.associations)
+  return build.then()
+}
+let findOnePopulated = async (model, query) => _.head(await findPopulated(model, query, {limit: 1}))
+
 module.exports = (models, modelName, req, res) => {
   let destroy = _.curry(async (cacheOptions, options, record) => {
     let {soft = false, cascade = false, customDelete, beforeDelete} = options
@@ -97,7 +109,8 @@ module.exports = (models, modelName, req, res) => {
 
     let originalRecord = await model.findOne({id}).then()
     let flatRecord = _.mapValues(x => _.get('id', x) || x, record)
-    let updatedRecord = _.head(await model.update({id}, _.extend(originalRecord, flatRecord)).meta({ fetch: true }).then())
+    await model.update({id}, _.extend(originalRecord, flatRecord)).then()
+    let updatedRecord = await findOnePopulated(model, {id})
 
     await Promise.all(_.map(async association => {
       // Get Child Info
@@ -124,7 +137,7 @@ module.exports = (models, modelName, req, res) => {
       }
     }, model.associations))
 
-    publishUpdate(model, id, flatRecord, req)
+    publishUpdate(model, id, updatedRecord, req)
     return _.extend({statusCode: 201}, updatedRecord)
   }
 
@@ -167,8 +180,7 @@ module.exports = (models, modelName, req, res) => {
       .set(_.reduce(_.extend, {}, updates))
       .then()
 
-    let newRecord = await model.findOne({id}).then()
-
+    let newRecord = await findOnePopulated(model, {id})
     publishCreate(model, newRecord, req)
     return _.extend({statusCode: 201}, newRecord)
   }
@@ -186,14 +198,7 @@ module.exports = (models, modelName, req, res) => {
       subscribeToAllIDs(req, model, cached)
       return cached
     } else {
-      let build = model.find(queryObject)
-      _.each(blacklisted => {
-        if (params[blacklisted]) build = build[blacklisted](params[blacklisted])
-      }, blacklist)
-      _.each(({ alias }) => {
-        build = build.populate(alias)
-      }, model.associations)
-      let result = await build.then()
+      let result = await findPopulated(model, queryObject, params)
       await syncIDs(prefix, `${prefix}-${key}`, result, get, set)
       await set(`${prefix}-${key}`, result)
       subscribeToAllIDs(req, model, result)
