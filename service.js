@@ -32,13 +32,10 @@ let syncIDs = async (prefix, key, result, get, set) => {
 }
 
 let subscribeToAllIDs = (req, model, result) => {
-  let ids = []
-  F.deepMap(x => {
-    let id = _.get('id', x)
-    if (id) ids.push(id)
-    return x
-  }, result)
-  model.subscribe(req, ids)
+  // Record-specific updates
+  model.subscribe(req, _.map('id', _.castArray(result)))
+  // Model/Collection level updates
+  model._watch(req)
 }
 
 module.exports = (models, modelName, req, res) => {
@@ -118,7 +115,8 @@ module.exports = (models, modelName, req, res) => {
       publishUpdate(
         childModel,
         childId,
-        childRecord
+        childRecord,
+        req
       )
 
       return {
@@ -126,7 +124,7 @@ module.exports = (models, modelName, req, res) => {
       }
     }, model.associations))
 
-    publishUpdate(model, id, flatRecord)
+    publishUpdate(model, id, flatRecord, req)
     return _.extend({statusCode: 201}, updatedRecord)
   }
 
@@ -158,7 +156,7 @@ module.exports = (models, modelName, req, res) => {
       // Create child
       childRecord[childModelAssociation.alias] = childModelAssociation.type === 'collection' ? [id] : id
       let newRecord = await childModel.create(childRecord).meta({fetch: true}).then()
-      publishCreate(childModel, newRecord)
+      publishCreate(childModel, newRecord, req)
 
       return {
         [association.alias]: association.type === 'collection' ? [newRecord.id] : newRecord.id
@@ -171,7 +169,7 @@ module.exports = (models, modelName, req, res) => {
 
     let newRecord = await model.findOne({id}).then()
 
-    publishCreate(model, newRecord)
+    publishCreate(model, newRecord, req)
     return _.extend({statusCode: 201}, newRecord)
   }
 
