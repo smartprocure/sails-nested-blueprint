@@ -1,4 +1,7 @@
-﻿# 1.4.3
+﻿# 1.4.4
+- Fixed an issue with the cached update.
+
+# 1.4.3
 - Improved the cached API.
 
 # 1.4.2
