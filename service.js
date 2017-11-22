@@ -5,7 +5,7 @@ let publishCreate = (model, record, req) => model._publishCreate(record, req)
 let publishUpdate = (model, id, record, req) => model._publishUpdate(id, record, req)
 let hash = require('object-hash')
 
-let blacklist = ['limit', 'sort']
+let blacklist = ['limit', 'sort', 'skip']
 let memoryCache = {}
 let defaultCacheProvider = {
   get: key => _.get(key, memoryCache),
