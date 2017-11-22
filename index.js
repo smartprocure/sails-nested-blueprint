@@ -7,6 +7,7 @@ let _ = require('lodash/fp')
 let getModelName = req => req.params.model || req.options.action.split('/')[0]
 let serviceFromReq = (req, res) => service(req._sails.models, getModelName(req), req, res)
 let create = async req => serviceFromReq(req).createNested(req.allParams())
+let update = async req => serviceFromReq(req).updateNested(req.allParams())
 let cleanParams = req => _.omit('model', req.allParams())
 
 module.exports = {
@@ -15,15 +16,17 @@ module.exports = {
   serviceFromReq,
   blueprint: controller({
     create,
+    update,
     destroy: async req => serviceFromReq(req).destroyNested(cleanParams(req)),
     count: async (req, res) => serviceFromReq(req, res).count(cleanParams(req))
   }),
   blueprintOptions: (options = {}) => {
     let methods = {
       create,
+      update,
       cachedFind: async req => serviceFromReq(req).cachedFind(options.cache, cleanParams(req)),
       clearCacheUpdate: async req => serviceFromReq(req).clearCacheUpdate(options.cache, cleanParams(req)),
-      destroy: async req => serviceFromReq(req).destroy(options.destroy, cleanParams(req)),
+      destroy: async req => serviceFromReq(req).destroy(options.cache, options.destroy, cleanParams(req)),
       count: async (req, res) => serviceFromReq(req, res).count(cleanParams(req))
     }
     if (options.cache) {

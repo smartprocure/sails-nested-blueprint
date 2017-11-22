@@ -8,7 +8,7 @@ This library brings it back in a non-obstrusive way.
 
 ### Blueprint (Easiest)
 The blueprint will automatically figure out which model to use just like sails blueprints.
-`blueprint` exposes a `create`, a `destroy` and a `count`, so just do this in a controller method:
+`blueprint` exposes a `create`, a `destroy`, an `update` and a `count`, so just do this in a controller method:
 
 ```js
 let {blueprint} = require('sails-nested-blueprint')
