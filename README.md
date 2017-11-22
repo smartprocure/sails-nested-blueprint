@@ -8,7 +8,7 @@ This library brings it back in a non-obstrusive way.
 
 ### Blueprint (Easiest)
 The blueprint will automatically figure out which model to use just like sails blueprints.
-`blueprint` exposes a `create`, a `destroy` and a `count`, so just do this in a controller method:
+`blueprint` exposes a `create`, a `destroy`, an `update` and a `count`, so just do this in a controller method:
 
 ```js
 let {blueprint} = require('sails-nested-blueprint')
@@ -41,7 +41,7 @@ extensible caching mechanism. The methods are `find` and `update`, and
 to be able to use them, you'll need to provide a `cache` object in the
 configuration options passed to
 `blueprintOptions`. The `cache` configuration object will have: a
-`provider` object containing a `get`, a `set` and a `del` functions,
+`provider` object containing a `get`, a `set`, a `del` and a `keys` functions,
 and a `prefix` alongsides the provider. See
 the following code as an example of how to use these methods on a
 Sails controller:
@@ -82,6 +82,9 @@ let blueprint = require('sails-nested-blueprint').blueprintOptions({
       },
       async del(keys) {
         await client.delAsync(keys)
+      },
+      async keys(query) {
+        await client.keys(query)
       }
     },
   },

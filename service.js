@@ -2,15 +2,16 @@ let F = require('futil-js')
 let _ = require('lodash/fp')
 let publishDestroy = (model, id, req) => model._publishDestroy(id, req)
 let publishCreate = (model, record, req) => model._publishCreate(record, req)
-let publishUpdate = (model, id, changes) => model._publishUpdate(id, changes)
+let publishUpdate = (model, id, record, req) => model._publishUpdate(id, record, req)
 let hash = require('object-hash')
 
-let blacklist = ['limit', 'sort']
+let blacklist = ['limit', 'sort', 'skip']
 let memoryCache = {}
 let defaultCacheProvider = {
   get: key => _.get(key, memoryCache),
   set: (key, value) => F.setOn(key, value, memoryCache),
-  del: _.each(key => delete memoryCache[key])
+  del: _.each(key => delete memoryCache[key]),
+  keys: () => _.keys(memoryCache)
 }
 let keygen = (req, res, params, queryObject, modelName) =>
   hash(queryObject)
@@ -22,61 +23,46 @@ let syncIDs = async (prefix, key, result, get, set) => {
     if (id) ids.push(id)
     return x
   }, result)
-  let keys = await get(`${prefix}-keys`)
-  if (!_.isPlainObject(keys)) keys = {}
+  let found = await get(`${prefix}-keys`)
+  if (!_.isPlainObject(found)) found = {}
   _.each(id => {
-    keys[id] = _.uniq(_.concat(keys[id] || [], key))
+    found[id] = _.uniq(_.concat(found[id] || [], key))
   }, ids)
-  await set(`${prefix}-keys`, keys)
+  await set(`${prefix}-keys`, found)
 }
 
+let subscribeToAllIDs = (req, model, result) => {
+  // Record-specific updates
+  model.subscribe(req, _.map('id', _.castArray(result)))
+  // Model/Collection level updates
+  model._watch(req)
+}
+
+let findPopulated = async (model, query, params = {}) => {
+  let build = model.find(query)
+  _.each(blacklisted => {
+    if (params[blacklisted]) build = build[blacklisted](params[blacklisted])
+  }, blacklist)
+  _.each(({ alias }) => {
+    build = build.populate(alias)
+  }, model.associations)
+  return build.then()
+}
+let findOnePopulated = async (model, query) => _.head(await findPopulated(model, query, {limit: 1}))
+
 module.exports = (models, modelName, req, res) => {
-  let cachedFind = _.curry(async (options, params) => {
-    let model = models[modelName]
-    let { get, set } = _.extend(defaultCacheProvider, options.provider)
-    let prefix = options.prefix
-    let queryObject = _.omit(blacklist, params)
-    if (queryObject.isDeleted) queryObject.isDeleted = false
-    let key = (options.keygen || keygen)(req, res, params, queryObject, modelName)
-    let cached
-    if (key) cached = await get(`${prefix}-${key}`)
-    if (key && cached) {
-      return cached
-    } else {
-      let build = model.find(queryObject)
-      _.each(blacklisted => {
-        if (params[blacklisted]) build = build[blacklisted](params[blacklisted])
-      }, blacklist)
-      _.each(({ alias }) => {
-        build = build.populate(alias)
-      }, model.associations)
-      let result = await build.then()
-      await syncIDs(prefix, `${prefix}-${key}`, result, get, set)
-      await set(`${prefix}-${key}`, result)
-      return result
-    }
-  })
-
-  let clearCacheUpdate = _.curry(async (options, params) => {
-    let model = models[modelName]
-    let { get, del } = _.extend(defaultCacheProvider, options.provider)
-    let prefix = options.prefix
-    let keys = await get(`${prefix}-keys`)
-    let id = params.id
-    let record = _.head(await model.find({id}).limit(1))
-    if (!_.isEmpty(record)) {
-      F.extendOn(record, _.omit('id', params))
-      await model.update({ id }, record)
-      if (_.get(params.id, keys)) await del(keys[params.id])
-      publishUpdate(model, params.id, params)
-    }
-    return record
-  })
-
-  let destroy = _.curry(async (options, record) => {
+  let destroy = _.curry(async (cacheOptions, options, record) => {
     let {soft = false, cascade = false, customDelete, beforeDelete} = options
     let model = models[modelName]
     let id = record.id
+
+    if (cacheOptions) {
+      let prefix = cacheOptions.prefix
+      let { get, del, keys } = _.extend(defaultCacheProvider, cacheOptions.provider)
+      let found = await get(`${prefix}-keys`)
+      if (_.get(id, found)) await del(found[id])
+      await del(await keys(`${prefix}*`))
+    }
 
     if (_.isFunction(customDelete)) await customDelete(options, record, model, models)
     else {
@@ -109,7 +95,59 @@ module.exports = (models, modelName, req, res) => {
     return {count: await model.count(record)}
   }
 
-  let createNested = async record => {
+  let updateNested = async (cacheOptions, record) => {
+    let model = models[modelName]
+    let id = record.id
+
+    if (cacheOptions) {
+      let { get, del, keys } = _.extend(defaultCacheProvider, cacheOptions.provider)
+      let prefix = cacheOptions.prefix
+      let found = await get(`${prefix}-keys`)
+      if (_.get(id, found)) await del(found[id])
+      await del(await keys(`${prefix}*`))
+    }
+
+    let originalRecord = await model.findOne({id}).then()
+    let flatRecord = _.mapValues(x => _.get('id', x) || x, record)
+    await model.update({id}, _.extend(originalRecord, flatRecord)).then()
+    let updatedRecord = await findOnePopulated(model, {id})
+
+    await Promise.all(_.map(async association => {
+      // Get Child Info
+      let childRecord = record[association.alias]
+      if (!childRecord || _.isString(childRecord)) return {}
+
+      let childModel = models[association[association.type]]
+      let childModelAssociation = _.find({collection: modelName}, childModel.associations) ||
+        _.find({model: modelName}, childModel.associations)
+
+      // Update child
+      childRecord[childModelAssociation.alias] = childModelAssociation.type === 'collection' ? [id] : id
+      let childId = childRecord.id
+      await _.head(childModel.update({ id: childId }, childRecord).then())
+      publishUpdate(
+        childModel,
+        childId,
+        childRecord,
+        req
+      )
+
+      return {
+        [association.alias]: association.type === 'collection' ? [childId] : childId
+      }
+    }, model.associations))
+
+    publishUpdate(model, id, updatedRecord, req)
+    return _.extend({statusCode: 201}, updatedRecord)
+  }
+
+  let createNested = async (cacheOptions, record) => {
+    if (cacheOptions) {
+      let prefix = cacheOptions.prefix
+      let { keys, del } = _.extend(defaultCacheProvider, cacheOptions.provider)
+      await del(await keys(`${prefix}*`))
+    }
+
     let model = models[modelName]
 
     let associationIds = _.flow(
@@ -130,10 +168,11 @@ module.exports = (models, modelName, req, res) => {
 
       // Create child
       childRecord[childModelAssociation.alias] = childModelAssociation.type === 'collection' ? [id] : id
-      let {childId} = await childModel.create(childRecord).meta({fetch: true}).then()
+      let newRecord = await childModel.create(childRecord).meta({fetch: true}).then()
+      publishCreate(childModel, newRecord, req)
 
       return {
-        [association.alias]: association.type === 'collection' ? [childId] : childId
+        [association.alias]: association.type === 'collection' ? [newRecord.id] : newRecord.id
       }
     }, model.associations))
 
@@ -141,20 +180,40 @@ module.exports = (models, modelName, req, res) => {
       .set(_.reduce(_.extend, {}, updates))
       .then()
 
-    let newRecord = await model.findOne({id}).then()
-
-    publishCreate(model, newRecord)
+    let newRecord = await findOnePopulated(model, {id})
+    publishCreate(model, newRecord, req)
     return _.extend({statusCode: 201}, newRecord)
   }
 
+  let cachedFind = _.curry(async (options, params) => {
+    let model = models[modelName]
+    let { get, set } = _.extend(defaultCacheProvider, options.provider)
+    let prefix = options.prefix
+    let queryObject = _.omit(blacklist, params)
+    if (queryObject.isDeleted) queryObject.isDeleted = false
+    let key = (options.keygen || keygen)(req, res, params, queryObject, modelName)
+    let cached
+    if (key) cached = await get(`${prefix}-${key}`)
+    if (key && cached) {
+      subscribeToAllIDs(req, model, cached)
+      return cached
+    } else {
+      let result = await findPopulated(model, queryObject, params)
+      await syncIDs(prefix, `${prefix}-${key}`, result, get, set)
+      await set(`${prefix}-${key}`, result)
+      subscribeToAllIDs(req, model, result)
+      return result
+    }
+  })
+
   return {
-    cachedFind,
-    clearCacheUpdate,
     count,
     createNested,
+    updateNested,
     destroy,
-    destroyNested: destroy({cascade: true}),
-    destroyNestedSoft: destroy({soft: true, cascade: true}),
-    destroySoft: destroy({soft: true})
+    destroyNested: destroy(null, {cascade: true}),
+    destroyNestedSoft: destroy(null, {soft: true, cascade: true}),
+    destroySoft: destroy({soft: true}),
+    cachedFind
   }
 }

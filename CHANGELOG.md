@@ -1,4 +1,8 @@
-﻿# 1.4.4
+﻿# 1.5.0
+- Added nestedUpdate, using it for the cached update, and clearing
+  caches on the destroy methods.
+
+# 1.4.4
 - Fixed an issue with the cached update.
 
 # 1.4.3
