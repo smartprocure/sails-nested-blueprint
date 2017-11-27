@@ -1,4 +1,7 @@
-﻿# 1.5.0
+﻿# 1.5.1
+- Cleaning the cache code.
+
+# 1.5.0
 - Added nestedUpdate, using it for the cached update, and clearing
   caches on the destroy methods.
 
