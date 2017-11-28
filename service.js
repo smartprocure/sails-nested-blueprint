@@ -32,7 +32,7 @@ let syncIDs = async (modelName, prefix, key, result, get, set) => {
   await set(modelName, keysKey, found)
 }
 
-let clearCache = async (modelName, { prefix, provider, }) => {
+let clearCache = async (modelName, { prefix, provider }, id) => {
   let { get, del, keys } = _.extend(defaultCacheProvider, provider)
   let found = await get(modelName, `${prefix}-${modelName}-keys`)
   if (_.get(id, found)) await del(modelName, found[id])
@@ -191,7 +191,7 @@ module.exports = (models, modelName, req, res) => {
       return cached
     } else {
       let result = await findPopulated(model, queryObject, params)
-      await syncIDs(modelName, refix, `${prefix}-${modelName}-${key}`, result, get, set)
+      await syncIDs(modelName, prefix, `${prefix}-${modelName}-${key}`, result, get, set)
       await set(modelName, `${prefix}-${modelName}-${key}`, result)
       subscribeToAllIDs(req, model, result)
       return result
