@@ -16,19 +16,27 @@ let defaultCacheProvider = {
 let keygen = (req, res, params, queryObject, modelName) =>
   hash(queryObject)
 
-let syncIDs = async (prefix, key, result, get, set) => {
+let syncIDs = async (modelName, prefix, key, result, get, set) => {
   let ids = []
   F.deepMap(x => {
     let id = _.get('id', x)
     if (id) ids.push(id)
     return x
   }, result)
-  let found = await get(`${prefix}-keys`)
+  let keysKey = `${prefix}-${modelName}-keys`
+  let found = await get(modelName, keysKey)
   if (!_.isPlainObject(found)) found = {}
   _.each(id => {
     found[id] = _.uniq(_.concat(found[id] || [], key))
   }, ids)
-  await set(`${prefix}-keys`, found)
+  await set(modelName, keysKey, found)
+}
+
+let clearCache = async (modelName, { prefix, provider }, id) => {
+  let { get, del, keys } = _.extend(defaultCacheProvider, provider)
+  let found = await get(modelName, `${prefix}-${modelName}-keys`)
+  if (_.get(id, found)) await del(modelName, found[id])
+  await del(modelName, await keys(modelName, `${prefix}-${modelName}*`))
 }
 
 let subscribeToAllIDs = (req, model, result) => {
@@ -56,13 +64,7 @@ module.exports = (models, modelName, req, res) => {
     let model = models[modelName]
     let id = record.id
 
-    if (cacheOptions) {
-      let prefix = cacheOptions.prefix
-      let { get, del, keys } = _.extend(defaultCacheProvider, cacheOptions.provider)
-      let found = await get(`${prefix}-keys`)
-      if (_.get(id, found)) await del(found[id])
-      await del(await keys(`${prefix}*`))
-    }
+    if (cacheOptions) await clearCache(modelName, cacheOptions, id)
 
     if (_.isFunction(customDelete)) await customDelete(options, record, model, models)
     else {
@@ -99,13 +101,7 @@ module.exports = (models, modelName, req, res) => {
     let model = models[modelName]
     let id = record.id
 
-    if (cacheOptions) {
-      let { get, del, keys } = _.extend(defaultCacheProvider, cacheOptions.provider)
-      let prefix = cacheOptions.prefix
-      let found = await get(`${prefix}-keys`)
-      if (_.get(id, found)) await del(found[id])
-      await del(await keys(`${prefix}*`))
-    }
+    if (cacheOptions) await clearCache(modelName, cacheOptions, id)
 
     let originalRecord = await model.findOne({id}).then()
     let flatRecord = _.mapValues(x => _.get('id', x) || x, record)
@@ -142,11 +138,7 @@ module.exports = (models, modelName, req, res) => {
   }
 
   let createNested = async (cacheOptions, record) => {
-    if (cacheOptions) {
-      let prefix = cacheOptions.prefix
-      let { keys, del } = _.extend(defaultCacheProvider, cacheOptions.provider)
-      await del(await keys(`${prefix}*`))
-    }
+    if (cacheOptions) await clearCache(modelName, cacheOptions)
 
     let model = models[modelName]
 
@@ -190,17 +182,17 @@ module.exports = (models, modelName, req, res) => {
     let { get, set } = _.extend(defaultCacheProvider, options.provider)
     let prefix = options.prefix
     let queryObject = _.omit(blacklist, params)
-    if (queryObject.isDeleted) queryObject.isDeleted = false
+    if (queryObject.isDeleted) queryObject.isDeleted = { '!=': true }
     let key = (options.keygen || keygen)(req, res, params, queryObject, modelName)
     let cached
-    if (key) cached = await get(`${prefix}-${key}`)
+    if (key) cached = await get(modelName, `${prefix}-${modelName}-${key}`)
     if (key && cached) {
       subscribeToAllIDs(req, model, cached)
       return cached
     } else {
       let result = await findPopulated(model, queryObject, params)
-      await syncIDs(prefix, `${prefix}-${key}`, result, get, set)
-      await set(`${prefix}-${key}`, result)
+      await syncIDs(modelName, prefix, `${prefix}-${modelName}-${key}`, result, get, set)
+      await set(modelName, `${prefix}-${modelName}-${key}`, result)
       subscribeToAllIDs(req, model, result)
       return result
     }
