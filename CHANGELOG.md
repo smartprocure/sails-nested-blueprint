@@ -1,4 +1,7 @@
-﻿# 1.5.1
+﻿# 1.5.2
+- Check if the request originates from a socket before subscribing.
+
+# 1.5.1
 - Cleaning the cache code.
 
 # 1.5.0

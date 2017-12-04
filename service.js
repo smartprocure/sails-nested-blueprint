@@ -40,10 +40,12 @@ let clearCache = async (modelName, { prefix, provider }, id) => {
 }
 
 let subscribeToAllIDs = (req, model, result) => {
-  // Record-specific updates
-  model.subscribe(req, _.map('id', _.castArray(result)))
-  // Model/Collection level updates
-  model._watch(req)
+  if (req.isSocket) {
+    // Record-specific updates
+    model.subscribe(req, _.map('id', _.castArray(result)))
+    // Model/Collection level updates
+    model._watch(req)
+  }
 }
 
 let findPopulated = async (model, query, params = {}) => {
