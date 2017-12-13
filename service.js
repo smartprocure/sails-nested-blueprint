@@ -24,9 +24,10 @@ let syncIDs = async (modelName, prefix, key, result, get, set) => {
     return x
   }, result)
   for (let id of ids) {
-    let key = `${prefix}:ids:${modelName}:${id}`
-    let found = await get(modelName, key)
-    await set(modelName, key, _.uniq(_.concat(found || [], key)))
+    let idsKey = `${prefix}:ids:${modelName}:${id}`
+    let found = await get(modelName, idsKey)
+    let update = _.uniq(_.concat(found || [], key))
+    if (!_.equals(found, update)) await set(modelName, idsKey, update)
   }
 }
 
