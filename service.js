@@ -23,20 +23,18 @@ let syncIDs = async (modelName, prefix, key, result, get, set) => {
     if (id) ids.push(id)
     return x
   }, result)
-  let keysKey = `${prefix}-${modelName}-keys`
-  let found = await get(modelName, keysKey)
-  if (!_.isPlainObject(found)) found = {}
-  _.each(id => {
-    found[id] = _.uniq(_.concat(found[id] || [], key))
-  }, ids)
-  await set(modelName, keysKey, found)
+  for (let id of ids) {
+    let key = `${prefix}:ids:${modelName}:${id}`
+    let found = await get(modelName, key)
+    await set(modelName, key, _.uniq(_.concat(found || [], key)))
+  }
 }
 
 let clearCache = async (modelName, { prefix, provider }, id) => {
   let { get, del, keys } = _.extend(defaultCacheProvider, provider)
-  let found = await get(modelName, `${prefix}-${modelName}-keys`)
-  if (_.get(id, found)) await del(modelName, found[id])
-  await del(modelName, await keys(modelName, `${prefix}-${modelName}*`))
+  let found = await get(modelName, `${prefix}:ids:${modelName}:${id}`)
+  if (found) await del(modelName, found)
+  await del(modelName, await keys(modelName, `${prefix}:${modelName}*`))
 }
 
 let subscribeToAllIDs = (req, model, result) => {
@@ -187,14 +185,14 @@ module.exports = (models, modelName, req, res) => {
     if (queryObject.isDeleted) queryObject.isDeleted = { '!=': true }
     let key = (options.keygen || keygen)(req, res, params, queryObject, modelName)
     let cached
-    if (key) cached = await get(modelName, `${prefix}-${modelName}-${key}`)
+    if (key) cached = await get(modelName, `${prefix}:${modelName}:${key}`)
     if (key && cached) {
       subscribeToAllIDs(req, model, cached)
       return cached
     } else {
       let result = await findPopulated(model, queryObject, params)
-      await syncIDs(modelName, prefix, `${prefix}-${modelName}-${key}`, result, get, set)
-      await set(modelName, `${prefix}-${modelName}-${key}`, result)
+      await syncIDs(modelName, prefix, `${prefix}:${modelName}:${key}`, result, get, set)
+      await set(modelName, `${prefix}:${modelName}:${key}`, result)
       subscribeToAllIDs(req, model, result)
       return result
     }

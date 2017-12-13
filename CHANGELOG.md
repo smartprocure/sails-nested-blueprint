@@ -1,4 +1,7 @@
-﻿# 1.5.2
+﻿# 1.6.0
+- Better distribution of redis keys.
+
+# 1.5.2
 - Check if the request originates from a socket before subscribing.
 
 # 1.5.1
