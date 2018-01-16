@@ -90,7 +90,7 @@ module.exports = (models, modelName, req, res) => {
     }
 
     publishDestroy(model, id)
-    return 200
+    return _.extend({statusCode: 200}, soft ? _.extend(record, {isDeleted: true}) : {id})
   })
 
   let count = async record => {
