@@ -1,4 +1,7 @@
-﻿# 1.6.0
+﻿# 1.6.1
+- Return deleted record for destroy blueprint
+
+# 1.6.0
 - Better distribution of redis keys.
 
 # 1.5.2
