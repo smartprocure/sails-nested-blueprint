@@ -59,6 +59,13 @@ let findPopulated = async (model, query, params = {}) => {
 }
 let findOnePopulated = async (model, query) => _.head(await findPopulated(model, query, {limit: 1}))
 
+let getLastEmail = _.flow(
+  _.sortBy('email'),
+  _.last,
+  _.get('email')
+)
+let getNextEmailNumber = email => _.head(email.match(/\d+$/)) || ''
+
 module.exports = (models, modelName, req, res) => {
   let destroy = _.curry(async (cacheOptions, options, record) => {
     let {soft = false, cascade = false, customDelete, beforeDelete} = options
@@ -85,8 +92,18 @@ module.exports = (models, modelName, req, res) => {
         }, model.associations))
       }
       if (_.isFunction(beforeDelete)) await beforeDelete(options, record, model, models)
-      if (soft) await model.update({id}, {isDeleted: true}).then()
-      else await model.destroy({id}).then()
+      if (soft) {
+        let updateBody = { isDeleted: true }
+        let email = record.email
+        if (email) {
+          let lastEmail = getLastEmail(await model.find({ email: new RegExp(`/${record.email}-deleted.*}/`) }).then())
+          let number = getNextEmailNumber(lastEmail)
+          updateBody = `${record.email}-deleted${number}`
+        }
+        await model.update({id}, updateBody).then()
+      } else {
+        await model.destroy({id}).then()
+      }
     }
 
     publishDestroy(model, id)
