@@ -1,4 +1,7 @@
-﻿# 1.6.1
+# 1.7.0
+- Soft deletes will now update emails to end up with `-deleted` plus a number if a record already exists with `{email}-deleted{N-1}`.
+
+# 1.6.1
 - Return deleted record for destroy blueprint
 
 # 1.6.0
