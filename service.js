@@ -49,9 +49,6 @@ let subscribeToAllIDs = (req, model, result) => {
 
 let findPopulated = async (model, query, params = {}) => {
   let build = model.find(query)
-  _.each(blacklisted => {
-    if (params[blacklisted]) build = build[blacklisted](params[blacklisted])
-  }, blacklist)
   _.each(({ alias }) => {
     build = build.populate(alias)
   }, model.associations)
@@ -182,8 +179,8 @@ module.exports = (models, modelName, req, res) => {
     let model = models[modelName]
     let { get, set } = _.extend(defaultCacheProvider, options.provider)
     let prefix = options.prefix
-    let queryObject = _.omit(blacklist, params)
-    if (queryObject.isDeleted) queryObject.isDeleted = { '!=': true }
+    let queryObject = _.extend(_.pick(blacklist, params), { where: _.omit(blacklist, params) })
+    if (queryObject.where.isDeleted) queryObject.where.isDeleted = { '!=': true }
     let key = (options.keygen || keygen)(req, res, params, queryObject, modelName)
     let cached
     if (key) cached = await get(modelName, `${prefix}:${modelName}:${key}`)

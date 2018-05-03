@@ -1,4 +1,7 @@
-﻿# 1.6.1
+﻿# 1.7.0
+- Fix issue with caching and waterline keywords such as limit, skip and sort
+
+# 1.6.1
 - Return deleted record for destroy blueprint
 
 # 1.6.0
