@@ -49,9 +49,6 @@ let subscribeToAllIDs = (req, model, result) => {
 
 let findPopulated = async (model, query, params = {}) => {
   let build = model.find(query)
-  // _.each(blacklisted => {
-  //   if (params[blacklisted]) build = build[blacklisted](params[blacklisted])
-  // }, blacklist)
   _.each(({ alias }) => {
     build = build.populate(alias)
   }, model.associations)
